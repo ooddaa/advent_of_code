@@ -1,6 +1,6 @@
 # https://adventofcode.com/2021/day/1
 
-"./day-01_data"
+"./day-01_input"
 |> File.stream!()
 |> Stream.map(&String.replace(&1, "\n", ""))
 |> Stream.map(&String.to_integer/1)
