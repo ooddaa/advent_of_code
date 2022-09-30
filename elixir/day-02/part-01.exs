@@ -10,5 +10,4 @@
   _, acc -> acc
 end)
 |> Enum.reduce(1, fn {_, val}, acc -> acc * val end)
-# 1694130
-|> IO.inspect()
+|> IO.inspect() # 1694130
