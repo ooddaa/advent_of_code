@@ -26,10 +26,28 @@ gamma_as_list =
 
 gamma = List.to_integer(gamma_as_list, 2)
 mask = 2**len - 1
+# {mask, ""} = Integer.parse("111111111111", 2)
+# IO.inspect(gamma, label: "gamma") # 4095
+# IO.inspect(Integer.to_string(gamma, 2), label: "gamma") # "100100101010"
+# IO.inspect(bnot(gamma), label: "bnot(gamma)") # 4095
+# IO.inspect(Integer.to_string(bnot(gamma), 2), label: "bnot(gamma)") # 4095
+# IO.inspect(mask, label: "mask") # 4095
+# IO.inspect(Integer.to_string(mask, 2), label: "mask") # "111111111111"
+# IO.inspect(bnot(gamma) &&& mask, label: "bnot(gamma) &&& mask") # 1749
+# IO.inspect(Integer.to_string(bnot(gamma) &&& mask, 2), label: "bnot(gamma) &&& mask") # "11011010101"
+
+#  100100101010 gamma
+#  011011010101 bnot(gamma)
+#  111111111111
+#  011011010101
+#   11011010101 ffs
+
+# -100100101011 bnot(gamma) - this is not correct representation ffs
+# IO? treats first 0 as negative sign
 epsilon = bnot(gamma) &&& mask
 
 # IO.inspect(gamma)
 # IO.inspect(mask)
 # IO.inspect(epsilon)
 
-# IO.inspect(gamma * epsilon) # 4103154
+IO.inspect(gamma * epsilon) # 4103154
