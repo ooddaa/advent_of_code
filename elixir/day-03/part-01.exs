@@ -23,4 +23,4 @@ end)
 |> Stream.map(&(Enum.join(Tuple.to_list(&1),""))) # put back binary number
 |> Enum.map(&(Integer.parse(&1, 2))) # parse to base10 [{2346, ""}, {1749, ""}]
 |> then(fn [{gamma, _}, {epsilon, _}] -> gamma * epsilon end)
-|> IO.inspect() # 4103154
+# |> IO.inspect() # 4103154
