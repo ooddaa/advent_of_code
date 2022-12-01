@@ -30,89 +30,78 @@ boards =
   #     [31, 78, 1, 55, 38]
   #   ],
 
-  defmodule Bingo do
-    def mark_number_on_board(board, num) do
-      Enum.map(board, fn
-        row ->
-          case Enum.find_index(row, &(&1 == num)) do
-            nil -> row
-            i -> List.replace_at(row, i, nil)
-          end
-        end)
-    end
+defmodule Bingo do
+  def mark_number_on_board(board, num) do
+    Enum.map(board, fn
+      row ->
+        case Enum.find_index(row, &(&1 == num)) do
+          nil -> row
+          i -> List.replace_at(row, i, nil)
+        end
+      end)
+  end
 
-    def is_winner_row?([nil, nil, nil, nil, nil]) do
-      true
-    end
-    def is_winner_row?(_) do
-      false
-    end
+  def rotate_90(board) do
+    board
+    |> Stream.zip()
+    |> Enum.map(&Tuple.to_list/1)
+  end
 
-    def rotate_90(board) do
-      board
-      |> Stream.zip()
-      |> Enum.map(&Tuple.to_list/1)
-    end
+  defp reducer([nil, nil, nil, nil, nil], _acc) do
+    {:halt, true}
+  end
 
-    defp reducer(row, _acc) do
-      if is_winner_row?(row), do: {:halt, true}, else: {:cont, false}
-    end
+  defp reducer(_, _acc) do
+    {:cont, false}
+  end
 
-    def is_winner?(board) do
-      row_winner =
-        board
-        |> Enum.reduce_while(false, &reducer/2)
+  def is_winner?(board) do
+    # row winner?
+    board |> Enum.reduce_while(false, &reducer/2)
 
-      col_winner =
-        rotate_90(board)
-        |> Enum.reduce_while(false, &reducer/2)
+    or
 
-      if (row_winner or col_winner), do: {:winner, board}, else: {:loser, board}
-    end
+    # col winner
+    rotate_90(board) |> Enum.reduce_while(false, &reducer/2)
+  end
 
-    def find_winner(boards) do
-      rv =
-        boards
-        |> Stream.map(&is_winner?/1)
-        |> Enum.filter(fn
-          {:winner, board} -> true
-          _ -> false
-        end)
-      case rv do
-        [{:winner, board}] -> board
-        _ -> nil
-      end
-    end
+  def find_winners(boards) do
+    boards |> Enum.filter(&is_winner?/1)
+  end
 
-    def solution([num], boards) do
-      IO.inspect("LAST!")
+  def solution([_], {_boards, winners}) do
+    [{first_winner, y}|_rest] = winners |> Enum.reverse()
+    [{last_winner, x}|_rest] = winners
 
-    end
+    {calculate_answer(y, first_winner), calculate_answer(x, last_winner)}
+  end
 
-    def solution([num|rest], boards) do
-      new_boards =
-        boards
-        |> Enum.map(&(mark_number_on_board(&1, num)))
-        # |> IO.inspect()
+  def solution([num|rest], {boards, winners}) do
+    new_boards =
+      boards
+      |> Enum.map(&(mark_number_on_board(&1, num)))
 
-      case find_winner(new_boards) do
-        nil -> solution(rest, new_boards)
-        board -> calculate_answer(num, board)
-      end
-
-    end
-
-    def calculate_answer(num, board) do
-      board
-      |> Enum.reduce([], fn row, acc -> acc ++ row end) # flatten
-      |> Enum.filter(&(&1 != nil))
-      |> Enum.sum()
-      |> then(&(&1 * num))
-      # |> IO.inspect()
+    new_winners = find_winners(new_boards)
+    case length(new_winners) == 0 do
+      true -> solution(rest, {new_boards, winners})
+      false ->
+        solution(rest, {
+          new_boards |> Enum.filter(fn board -> not(Enum.member?(new_winners, board)) end), # remove winners from boards
+          (new_winners |> Enum.map(&({&1, num}))) ++ winners # add new winners as {winner, num}
+          })
     end
   end
 
-Bingo.solution(numbers, boards)
-|> IO.inspect()
+  def calculate_answer(num, board) do
+    board
+    |> Enum.reduce([], fn row, acc -> acc ++ row end) # flatten
+    |> Enum.filter(&(&1 != nil))
+    |> Enum.sum()
+    |> then(&(&1 * num))
+  end
+end
+
+Bingo.solution(numbers, {boards, []})
+|> IO.inspect() # {2745, 6594}
 
 # 2745
