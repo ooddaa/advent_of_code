@@ -54,31 +54,20 @@ boards =
       |> Enum.map(&Tuple.to_list/1)
     end
 
+    defp reducer(row, _acc) do
+      if is_winner_row?(row), do: {:halt, true}, else: {:cont, false}
+    end
+
     def is_winner?(board) do
       row_winner =
         board
-        |> Enum.reduce_while(false, fn row, _acc ->
-        if is_winner_row?(row) == true do
-          {:halt, true}
-        else
-          {:cont, false}
-        end
-      end)
+        |> Enum.reduce_while(false, &reducer/2)
 
       col_winner =
         rotate_90(board)
-        |> Enum.reduce_while(false, fn row, _acc ->
-        if is_winner_row?(row) == true do
-          {:halt, true}
-        else
-          {:cont, false}
-        end
-      end)
-      if (row_winner or col_winner) == true do
-        {:winner, board}
-      else
-        {:loser, board}
-      end
+        |> Enum.reduce_while(false, &reducer/2)
+
+      if (row_winner or col_winner), do: {:winner, board}, else: {:loser, board}
     end
 
     def find_winner(boards) do
@@ -115,8 +104,7 @@ boards =
 
     def calculate_answer(num, board) do
       board
-      |> Enum.reduce([], fn row, acc -> acc ++ row end)
-
+      |> Enum.reduce([], fn row, acc -> acc ++ row end) # flatten
       |> Enum.filter(&(&1 != nil))
       |> Enum.sum()
       |> then(&(&1 * num))
@@ -126,3 +114,5 @@ boards =
 
 Bingo.solution(numbers, boards)
 |> IO.inspect()
+
+# 2745
