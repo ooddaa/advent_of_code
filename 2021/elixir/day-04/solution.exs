@@ -86,7 +86,8 @@ defmodule Bingo do
       true -> solution(rest, {new_boards, winners})
       false ->
         solution(rest, {
-          new_boards |> Enum.filter(fn board -> not(Enum.member?(new_winners, board)) end), # remove winners from boards
+          # new_boards |> Enum.filter(&(not(Enum.member?(new_winners, &1)))), # remove winners from boards
+          new_boards |> Enum.reject(&Enum.member?(new_winners, &1)), # remove winners from boards
           (new_winners |> Enum.map(&({&1, num}))) ++ winners # add new winners as {winner, num}
           })
     end
