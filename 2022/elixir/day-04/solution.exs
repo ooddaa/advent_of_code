@@ -2,8 +2,12 @@ numbers =
   File.read!("input")
   |> String.split("\n")
   |> Enum.map(&String.split(&1,",", trim: true)
-    |> Enum.map(fn s -> String.split(s,"-", trim: true) |> Enum.map(fn s -> String.to_integer(s) end) end)
-    )
+    |> Enum.map(fn
+      s ->
+        String.split(s,"-", trim: true)
+        |> Enum.map(fn s -> String.to_integer(s)
+      end)
+    end))
 
 # Part 1
 numbers
