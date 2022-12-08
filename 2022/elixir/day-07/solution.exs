@@ -14,9 +14,16 @@ defmodule Fs do
     |> Enum.sum()
   end
 
+  def sum_up_directory({ [dir, dsize], deps }) do
+    dsize + Enum.sum(deps)
+  end
+  def sum_up_directory2({ [dir, dsize], deps }) do
+    { [dir, dsize + Enum.sum(deps)] }
+  end
+
   def parser(list), do: parser(list, [])
   def parser([], acc), do: acc
-  def parser([[".."|_rest]|tail], acc), do: parser(tail, acc)
+  def parser([[".."|rest]|tail], acc), do: parser(tail, acc)
   def parser([[dir|rest] = head|tail], acc) do
     subdirs = Fs.parse_dir_descr(head)
     # IO.inspect(subdirs, label: 'subdirs')
@@ -49,10 +56,12 @@ defmodule Fs do
     case index do
       nil ->
         # nothing to do
-        match_deps(tail, [head | acc])
+        match_deps(tail, [head|acc])
       i ->
+        # IO.inspect({ subdir, i, Enum.at(tail, i) }, label: 'is subdir')
         # need to swap subdir name for subdir size in parents deps
         { parent_head, deps } = Enum.at(tail, i)
+        # IO.inspect({ parent_head, deps }, label: 'parent')
         new_deps = Enum.map(deps, fn dep -> if dep == subdir, do: size + Enum.sum(dependencies), else: dep end)
         new_parent = { parent_head, new_deps }
 
@@ -62,6 +71,10 @@ defmodule Fs do
         match_deps(new_tail, [head|acc])
     end
   end
+  # def match_deps([{ [subdir, size], dependencies} = head|tail], acc) do
+  #   IO.inspect(head, label: 'whop')
+  # end
+
 end
 
 data =
@@ -86,7 +99,8 @@ zips = Enum.zip(totals, deps)
 zips
   |> Enum.reverse()
   |> Fs.match_deps()
-  |> Enum.map(fn { [_dir, dsize], deps} -> dsize + Enum.sum(deps) end)
+  # |> Enum.map(fn { [_dir, dsize], deps} -> dsize + Enum.sum(deps) end)
+  |> Enum.map(&Fs.sum_up_directory(&1))
   |> Enum.filter(&(&1 < 100_000))
   |> Enum.sum()
   |> IO.inspect() # part 1 1118405
