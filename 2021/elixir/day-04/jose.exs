@@ -14,19 +14,20 @@ boards =
           end
     )
   end)
+  |> IO.inspect()
 
-{number, board = %Board{}} =
-  numbers
-  |> String.split(",", trim: true)
-  |> Enum.map(&String.to_integer/1)
-  |> Enum.reduce_while(boards, fn number, boards ->
-    boards = Enum.map(boards, &Board.mark(&1, number))
-    if board = Enum.find(boards, &Board.won?/1) do
-      {:halt, {number, board}}
-    else
-      {:cont, boards}
-    end
-  end)
+# {number, board = %Board{}} =
+#   numbers
+#   |> String.split(",", trim: true)
+#   |> Enum.map(&String.to_integer/1)
+#   |> Enum.reduce_while(boards, fn number, boards ->
+#     boards = Enum.map(boards, &Board.mark(&1, number))
+#     if board = Enum.find(boards, &Board.won?/1) do
+#       {:halt, {number, board}}
+#     else
+#       {:cont, boards}
+#     end
+#   end)
 
-number * Board.unmarked_sum(board)
-|> IO.inspect()
+# number * Board.unmarked_sum(board)
+# |> IO.inspect()
