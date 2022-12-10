@@ -1,0 +1,275 @@
+# d9
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.7.0"}
+])
+```
+
+## Part1
+
+```elixir
+input = Kino.Input.textarea("Please paste your input")
+```
+
+```elixir
+instructions =
+  input
+  |> Kino.Input.read()
+  |> String.split("\n")
+  |> Enum.map(&String.split(&1, " "))
+  |> Enum.map(fn [l, n] -> [l, String.to_integer(n)] end)
+```
+
+```elixir
+head_route =
+  instructions
+  |> Enum.reduce([{0, 0}], fn [dir, steps], acc ->
+    [{last_row, last_col} | _] = Enum.reverse(acc)
+
+    movement =
+      case dir do
+        "R" ->
+          for i <- (last_col + 1)..(last_col + steps),
+              do: {last_row, i}
+
+        "L" ->
+          # decrease {row,col} col count 
+          for i <- (last_col - 1)..(last_col - steps),
+              do: {last_row, i}
+
+        "U" ->
+          # decrease {row,col} row count 
+          for i <- (last_row - 1)..(last_row - steps),
+              do: {i, last_col}
+
+        "D" ->
+          # increase {row,col} row count 
+          for i <- (last_row + 1)..(last_row + steps),
+              do: {i, last_col}
+      end
+
+    acc ++ movement
+  end)
+
+# |> length()
+```
+
+```elixir
+rv =
+  head_route
+  |> Enum.chunk_every(2, 1, :discard)
+  |> Enum.reduce([{0, 0}], fn [{head_last_r, head_last_c}, {head_cur_r, head_cur_c}] = chunk,
+                              acc ->
+    [{tail_last_r, tail_last_c} = t_chunk | _] = Enum.reverse(acc)
+
+    # if either abs(h_r - t) or abs(h_c - t) > 1 copy last head position, if not, stay where you are
+    tail_cur =
+      if abs(head_cur_r - tail_last_r) > 1 or abs(head_cur_c - tail_last_c) > 1 do
+        {head_last_r, head_last_c}
+      else
+        {tail_last_r, tail_last_c}
+      end
+
+    # IO.inspect(tail_cur)
+    IO.inspect({chunk, [t_chunk, tail_cur]})
+    acc ++ [tail_cur]
+  end)
+
+# length(rv)
+# length(rv |> Enum.uniq())
+```
+
+## Part2
+
+```elixir
+input2 = Kino.Input.textarea("Please paste your input")
+```
+
+```elixir
+defmodule Snake do
+  def tail_route(list, opt \\ []) do
+    log? =
+      case Keyword.fetch(opt, :log) do
+        {:ok, true} -> true
+        _ -> false
+      end
+
+    list
+    |> Enum.chunk_every(2, 1, :discard)
+    |> Enum.reduce([{0, 0}], fn
+      [{head_last_r, head_last_c}, {head_cur_r, head_cur_c}] = chunk, acc ->
+        # IO.inspect(acc)
+        [{tail_last_r, tail_last_c} = t_chunk | _] = Enum.reverse(acc)
+        # if head went too far (>1 steps) copy last head position, 
+        # if not, stay where you are
+        tail_cur =
+          if abs(head_cur_r - tail_last_r) > 1 or abs(head_cur_c - tail_last_c) > 1 do
+            # was it a diagonal movement?
+
+            # IO.inspect("wtf")
+            diagonal? = head_last_r != head_cur_r and head_last_c != head_cur_c
+
+            if diagonal? do
+              # what kind of diagonal? needs to be relative to initial position
+
+              # first case ✅          🚫 not too far/diagonal
+              # .ht..  ..t..  .....   .ht.. ..t.. .....   ..... ..... .....  
+              # .....  h....  ht...   ..... ..h.. .....   ..... ..... .....
+              # .....  .....  .....   ..... ..... .....   ..... ..... .....
+              # .....  .....  .....   ..... ..... .....   ..... ..... .....
+
+              # second case                                                    non-aligned
+              # .....  .....  .....   ..... ..... .....   .h... ..... .....   .....  .....  .....   
+              # .t...  .t...  .....   ..t.. ..t.. .....   t.... t.h.. .th..   .....  h....  h....
+              # h....  .....  .t...   ...h. ..... ..t..   ..... ..... .....   .h...  .....  .t...
+              # .....  .h...  .h...   ..... ..h.. ..h..   ..... ..... .....   ..t..  ..t..  .....
+
+              # third case (less likely)
+              # .....  .....  .....
+              # .t...  .t...  .....
+              # h....  .....  t....
+              # .....  .h...  .h...
+              # d_r = head_cur_r - head_last_r
+              # d_c = head_cur_c - head_last_c
+              # case which_case?(head_last_pos, tail_last_pos) do
+              #   "first" -> 
+              #     # IO.inspect("first diagonal")
+              #     # first case ✅ repeat the movement
+
+              #     {tail_last_r + d_r, tail_last_c + d_c}
+              #   "second" ->
+              d_r = if head_cur_r == tail_last_r, do: 0, else: head_cur_r - head_last_r
+              d_c = if head_cur_c == tail_last_c, do: 0, else: head_cur_c - head_last_c
+              {tail_last_r + d_r, tail_last_c + d_c}
+              # end
+            else
+              # IO.inspect("straight")
+              {head_last_r, head_last_c}
+            end
+          else
+            # IO.inspect("no movement")
+            {tail_last_r, tail_last_c}
+          end
+
+        # IO.inspect(tail_cur, label: 'tail_cur')
+        if log?, do: IO.inspect({chunk, [t_chunk, tail_cur]})
+        acc ++ [tail_cur]
+    end)
+
+    # |> Enum.uniq()
+  end
+end
+```
+
+```elixir
+instructions2 =
+  input2
+  |> Kino.Input.read()
+  |> String.split("\n")
+  |> Enum.map(&String.split(&1, " "))
+  |> Enum.map(fn [l, n] -> [l, String.to_integer(n)] end)
+```
+
+```elixir
+head_route2 =
+  instructions2
+  |> Enum.reduce([{0, 0}], fn [dir, steps], acc ->
+    [{last_row, last_col} | _] = Enum.reverse(acc)
+
+    movement =
+      case dir do
+        "R" ->
+          for i <- (last_col + 1)..(last_col + steps),
+              do: {last_row, i}
+
+        "L" ->
+          # decrease {row,col} col count 
+          for i <- (last_col - 1)..(last_col - steps),
+              do: {last_row, i}
+
+        "U" ->
+          # decrease {row,col} row count 
+          for i <- (last_row - 1)..(last_row - steps),
+              do: {i, last_col}
+
+        "D" ->
+          # increase {row,col} row count 
+          for i <- (last_row + 1)..(last_row + steps),
+              do: {i, last_col}
+      end
+
+    acc ++ movement
+  end)
+
+# length(head_route2)
+```
+
+```elixir
+rv =
+  head_route2
+  # |> IO.inspect()
+  |> tail_route.()
+  |> tail_route.()
+  |> tail_route.()
+  |> tail_route.()
+  |> tail_route.()
+  |> tail_route.()
+  |> tail_route.()
+  |> tail_route.()
+  |> tail_route.()
+  # |> Enum.uniq()
+  |> length()
+
+# 5623 wrong
+# 5627
+# 2186 wrong - with diagonal
+# 
+```
+
+```elixir
+board = "." |> List.duplicate(80) |> List.duplicate(60)
+''
+```
+
+```elixir
+mark = fn
+  {row, col}, board, marker ->
+    #  {row, col}
+    # Tuple.insert_at((board, row, col, "#")
+    put_in(board, [Access.at(row + 10), Access.at(col + 20)], marker)
+end
+```
+
+```elixir
+# x = [{0,0}, {0,1}, {1,1}]
+# |> Enum.map(&mark.(&1, board))
+head =
+  head_route2
+  # |> Enum.take(6)
+  |> Enum.reduce(board, fn pos, acc -> mark.(pos, acc, "#") end)
+  |> Enum.map(&Enum.join(&1, ""))
+```
+
+```elixir
+# tail2_board = Enum.map(tail2_board, fn r -> String.split(r, "", trim: true) end)
+# tail3_instructions = 
+#   tail2_instructions
+head_route
+|> Snake.tail_route()
+|> Snake.tail_route()
+|> Snake.tail_route()
+|> Snake.tail_route()
+|> Snake.tail_route()
+|> Snake.tail_route()
+|> Snake.tail_route()
+|> Snake.tail_route()
+|> Snake.tail_route()
+# |> Snake.tail_route(log: true)
+|> Enum.uniq()
+# |> length()
+# tail3_board = 
+#   tail3_instructions
+|> Enum.reduce(board, fn pos, acc -> mark.(pos, acc, "*") end)
+|> Enum.map(&Enum.join(&1, ""))
+```
