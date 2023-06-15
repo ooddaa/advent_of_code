@@ -1,0 +1,129 @@
+# --- Day 5: Hydrothermal Venture ---
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.9.4"}
+])
+```
+
+## Section
+
+```elixir
+# https://adventofcode.com/2021/day/5
+input = Kino.Input.textarea("put you input here")
+```
+
+```elixir
+input2 = Kino.Input.textarea("")
+```
+
+```elixir
+path_to_tuples = fn [start, finish] ->
+  {x1, y1} = String.split(start, ",") |> Enum.map(&String.to_integer/1) |> List.to_tuple()
+  {x2, y2} = String.split(finish, ",") |> Enum.map(&String.to_integer/1) |> List.to_tuple()
+  {{x1, y1}, {x2, y2}}
+end
+```
+
+```elixir
+# filter horizontal/vertical lines only
+filter_straight_lines = fn {{x1, y1}, {x2, y2}} ->
+  x1 == x2 or y1 == y2
+end
+```
+
+```elixir
+expand_path = fn 
+  ({{x1, y1}, {x2, _y2}}) when x1 != x2->
+    for x <- x1..x2, do: {x, y1}
+  ({{x1, y1}, {_x2, y2}})  ->
+    for y <- y1..y2, do: {x1, y}
+end
+```
+
+```elixir
+# answer 6710
+count_overlaps = fn list ->
+  Enum.frequencies(list) |> Map.values() |> Enum.filter(&(&1 >= 2)) |> Enum.count()
+end
+```
+
+```elixir
+a =
+  Kino.Input.read(input2)
+  |> String.split("\n", trim: true)
+  |> Enum.map(&String.split(&1, " -> ", trim: true))
+  |> Enum.map(&path_to_tuples.(&1))
+  |> Enum.filter(&filter_straight_lines.(&1))
+  |> Enum.map(&expand_path.(&1))
+  |> List.flatten()
+  |> count_overlaps.()
+```
+
+## Part 2
+
+```elixir
+filter_diagonal_lines = fn {{x1, y1}, {x2, y2}} ->
+  x1 != x2 and y1 != y2
+end
+```
+
+```elixir
+straights =
+  Kino.Input.read(input2)
+  |> String.split("\n", trim: true)
+  |> Enum.map(&String.split(&1, " -> ", trim: true))
+  |> Enum.map(&path_to_tuples.(&1))
+  |> Enum.filter(fn x -> filter_straight_lines.(x) end)
+  |> Enum.map(&expand_path.(&1))
+  |> List.flatten()
+```
+
+```elixir
+expand_diagonal_path = fn {{x1, y1}, {x2, y2}} = var ->
+  # IO.inspect(var)
+  cond do
+    x1 == y1 and x2 == y2 ->
+      for x <- x1..x2, do: {x, x}
+
+    x1 == y2 and y1 == x2 ->
+      Enum.zip(x1..x2, y1..y2)
+
+    x1 - y1 == x2 - y2 ->
+      Enum.zip(x1..x2, y1..y2)
+
+    y1 - x1 == y2 - x2 ->
+      Enum.zip(x1..x2, y1..y2)
+
+    x1 - x2 == y1 - y2 ->
+      Enum.zip(x1..x2, y1..y2)
+
+    x2 - x1 == y2 - y1 ->
+      Enum.zip(x1..x2, y1..y2)
+
+    (x1 == y1 or x2 == y2) and abs(x2 - x1) == abs(y2 - x1) ->
+      Enum.zip(x1..x2, y1..y2)
+
+    x1 + y1 == x2 + y2 ->
+      Enum.zip(x1..x2, y1..y2)
+  end
+end
+
+expand_diagonal_path.({{98, 891}, {972, 17}})
+```
+
+```elixir
+diagonals =
+  Kino.Input.read(input2)
+  |> String.split("\n", trim: true)
+  |> Enum.map(&String.split(&1, " -> ", trim: true))
+  |> Enum.map(&path_to_tuples.(&1))
+  |> Enum.filter(fn x -> filter_diagonal_lines.(x) end)
+  |> Enum.map(&expand_diagonal_path.(&1))
+  |> List.flatten()
+```
+
+```elixir
+(straights ++ diagonals)
+|> count_overlaps.()
+```
