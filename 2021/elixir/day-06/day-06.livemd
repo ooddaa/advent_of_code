@@ -1,0 +1,91 @@
+# --- Day 6: Lanternfish ---
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.9.4"}
+])
+```
+
+## Section
+
+https://adventofcode.com/2021/day/6
+
+```elixir
+input = Kino.Input.textarea("put you input here")
+```
+
+```elixir
+input =
+  Kino.Input.read(input)
+  |> String.split(",", trim: true)
+  |> Enum.map(&String.to_integer/1)
+```
+
+## Part-2
+
+```elixir
+defmodule Fish do
+  @moduledoc """
+  What we learned from this?
+  0. n+1 is a nasty thing!
+  1. representing your data is key => data structures
+  2. genetic algorithm for an evolutionary problem is a no brainer
+  3. it's the n+1 and reading the task CAREFULLY 👏
+  """
+  def population(input) do
+    0..8
+    |> Enum.map(&{&1, 0})
+    |> Map.new()
+    |> Map.merge(Enum.frequencies(input))
+  end
+
+  def select_parents(population), do: Map.get(population, 0, 0)
+
+  def procreate(population) do
+    parents = select_parents(population)
+
+    population
+    # |> IO.inspect(label: "old")
+    |> Enum.map(fn
+      # age == the number of days until it creates a new lanternfish
+      {age, size} when age == 0 -> {8, size}
+      {age, size} -> {age - 1, size}
+    end)
+    |> Map.new()
+    |> Map.update(6, 0, &(&1 + parents))
+  end
+
+  def count(population) do
+    population
+    |> Map.values()
+    |> Enum.sum()
+  end
+
+  def run(population, 0), do: count(population)
+
+  def run(population, days) do
+    run(procreate(population), days - 1)
+  end
+end
+```
+
+```elixir
+Fish.population(input)
+|> Fish.run(256)
+```
+
+```elixir
+input2 = Kino.Input.textarea("")
+```
+
+```elixir
+input2 =
+  Kino.Input.read(input2)
+  |> String.split(",", trim: true)
+  |> Enum.map(&String.to_integer/1)
+```
+
+```elixir
+Fish.population(input2)
+|> Fish.run(256)
+```
