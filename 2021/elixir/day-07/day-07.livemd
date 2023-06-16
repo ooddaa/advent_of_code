@@ -1,0 +1,83 @@
+# --- Day 7: The Treachery of Whales ---
+
+```elixir
+Mix.install([{:kino, "~> 0.9.4"}])
+```
+
+## Part1
+
+https://adventofcode.com/2021/day/7
+
+```elixir
+input = Kino.Input.textarea("test input")
+```
+
+```elixir
+input =
+  Kino.Input.read(input)
+  |> String.split(",", trim: true)
+  |> Enum.map(&String.to_integer/1)
+```
+
+```elixir
+input2 = Kino.Input.textarea("real input")
+```
+
+```elixir
+input2 =
+  Kino.Input.read(input2)
+  |> String.split(",", trim: true)
+  |> Enum.map(&String.to_integer/1)
+```
+
+```elixir
+{min, max} = {Enum.min(input2), Enum.max(input2)}
+
+min..max
+|> Enum.reduce({nil, nil}, fn crd, acc ->
+  # IO.inspect(crd)
+  # IO.inspect(acc)
+  cost =
+    input2
+    |> Enum.map(&abs(&1 - crd))
+    # |> Enum.map(fn x -> 
+    #   abs(x - crd) 
+    # end)
+    # |> IO.inspect()
+    |> Enum.sum()
+
+  # |> IO.inspect()
+
+  # potential bug
+  if elem(acc, 1) > cost,
+    do: {crd, cost},
+    else: acc
+end)
+```
+
+```elixir
+{min, max} = {Enum.min(input), Enum.max(input)}
+
+defmodule Crabs do
+  # hello, factorial!
+  # 1 -> 1
+  # 2 -> 1 + 2 = 3
+  # 3 -> 1 + 2 + 3 = 6
+  # 4 -> 3! + 4 = 10
+  def calc_fuel_cost(steps \\ 0, sum \\ 0)
+  def calc_fuel_cost(0, sum), do: sum
+  def calc_fuel_cost(steps, sum), do: calc_fuel_cost(steps - 1, sum + steps)
+end
+
+min..max
+|> Enum.reduce({nil, nil}, fn crd, acc ->
+  cost =
+    input
+    |> Enum.map(&(abs(&1 - crd) |> Crabs.calc_fuel_cost()))
+    |> Enum.sum()
+
+  if elem(acc, 1) > cost,
+    do: {crd, cost},
+    else: acc
+end)
+```
