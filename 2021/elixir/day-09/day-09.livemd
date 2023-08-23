@@ -1,0 +1,236 @@
+# --- Day 9: Smoke Basin ---
+
+```elixir
+Mix.install([{:kino, "~> 0.9.4"}, {:vega_lite, "~> 0.1.2"}, {:kino_vega_lite, "~> 0.1.7"}])
+alias VegaLite, as: Vl
+```
+
+## Section
+
+https://github.com/miladamilli/Advent_of_Code_2021/blob/master/day09.livemd#L103
+
+<!-- livebook:{"break_markdown":true} -->
+
+https://www.twitch.tv/videos/1229612184?collection=k_DLnk2tvBa-fQ
+https://adventofcode.com/2021/day/9
+
+```elixir
+puzzle1 = Kino.Input.textarea("test input")
+```
+
+```elixir
+make_grid = fn input ->
+  Kino.Input.read(input)
+  |> String.split("\n")
+  |> Enum.with_index()
+  |> Enum.reduce(%{}, fn {str, row}, acc ->
+    str
+    |> String.split("", trim: true)
+    |> Enum.with_index()
+    |> Enum.map(fn {height, col} -> {{row, col}, String.to_integer(height)} end)
+    |> Enum.into(acc)
+  end)
+end
+```
+
+```elixir
+make_grid2 = fn input ->
+  for {line, row} <- Enum.with_index(String.split(Kino.Input.read(input), "\n")),
+      {number, column} <- Enum.with_index(String.to_charlist(line)),
+      into: %{} do
+    {{row, column}, number - ?0}
+  end
+end
+```
+
+```elixir
+make_coords = fn input ->
+  Kino.Input.read(input)
+  |> String.split("\n")
+  |> Enum.with_index()
+  |> Enum.reduce([], fn {str, row}, acc ->
+    str
+    |> String.split("", trim: true)
+    |> Enum.with_index()
+    |> Enum.map(fn {height, col} -> {{row, col}, String.to_integer(height)} end)
+    |> Enum.reverse()
+    |> Enum.concat(acc)
+  end)
+  |> Enum.reverse()
+end
+```
+
+```elixir
+adj_cells = fn
+  {x, y} ->
+    [{x - 1, y}, {x + 1, y}, {x, y - 1}, {x, y + 1}]
+    |> Enum.filter(fn {x, y} -> x >= 0 and y >= 0 end)
+end
+```
+
+## Part 1
+
+```elixir
+input = Kino.Input.textarea("part 1")
+```
+
+```elixir
+coords =
+  Kino.Input.read(input)
+  |> String.split("\n")
+  |> Enum.with_index()
+  |> Enum.reduce([], fn {str, row}, acc ->
+    str
+    |> String.split("", trim: true)
+    |> Enum.with_index()
+    |> Enum.map(fn {height, col} -> {{row, col}, String.to_integer(height)} end)
+    |> Enum.reverse()
+    |> Enum.concat(acc)
+  end)
+  |> Enum.reverse()
+
+grid = coords |> Enum.into(%{})
+```
+
+```elixir
+coords
+|> Enum.reduce([], fn {key, height}, acc ->
+  adj_cells.(key)
+  |> Enum.map(&get_in_grid.(&1, grid))
+  |> Enum.min()
+  |> Kernel.>(height)
+  |> case do
+    false -> acc
+    true -> [height | acc]
+  end
+end)
+|> Enum.map(&(&1 + 1))
+|> Enum.sum()
+```
+
+## Part 2
+
+## Part 2
+
+```elixir
+puzzle2 = Kino.Input.textarea("real")
+```
+
+```elixir
+make_grid2 = fn input ->
+  for {line, row} <- Enum.with_index(String.split(Kino.Input.read(input), "\n")),
+      {number, column} <- Enum.with_index(String.to_charlist(line)),
+      into: %{} do
+    {{row, column}, number - ?0}
+  end
+end
+
+make_low_points = fn grid ->
+  grid
+  |> Enum.filter(fn {{row, col}, val} ->
+    left = grid[{row, col - 1}]
+    right = grid[{row, col + 1}]
+    down = grid[{row - 1, col}]
+    up = grid[{row + 1, col}]
+    val < up and val < down and val < left and val < right
+  end)
+end
+```
+
+```elixir
+defmodule Smoke do
+  @grid make_grid2.(puzzle2)
+
+  @doc """
+  Will produce neighbours for a cell in a given grid
+  Will exclude boundaries (9s)
+  """
+  def adj_cells({{row, col}, _}, grid) do
+    [{row + 1, col}, {row - 1, col}, {row, col - 1}, {row, col + 1}]
+    |> Enum.filter(fn {x, y} -> x >= 0 and y >= 0 end)
+    |> Enum.map(&{&1, Map.get(grid, &1)})
+    |> Enum.filter(fn {_coord, val} -> val != nil and val != 9 end)
+  end
+
+  def solve(low_points), do: solve(low_points, [])
+  def solve([], basins), do: basins |> Enum.uniq()
+
+  def solve([point | points], basins) do
+    # produce this point's neighbours
+    neibs =
+      point
+      |> adj_cells(@grid)
+      # and exclude already visited cells
+      |> Enum.filter(&(&1 not in List.flatten(basins)))
+
+    # continue 
+    solve(points, solve(neibs, [point | basins]))
+  end
+end
+
+make_grid2.(puzzle2)
+|> make_low_points.()
+|> Enum.map(fn point -> Smoke.solve([point]) end)
+|> Enum.map(&length/1)
+|> Enum.sort(:desc)
+|> Enum.take(3)
+|> Enum.product()
+
+# |> Enum.reduce(&(&1 * &2))
+# 1280496
+```
+
+## José
+
+```elixir
+defmodule Recursion2 do
+  def basin(point, grid) do
+    basin(MapSet.new(), point, grid)
+  end
+
+  def basin(set, {row, col} = point, grid) do
+    if grid[point] in [9, nil] or point in set do
+      set
+    else
+      set
+      |> MapSet.put(point)
+      |> basin({row - 1, col}, grid)
+      |> basin({row + 1, col}, grid)
+      |> basin({row, col - 1}, grid)
+      |> basin({row, col + 1}, grid)
+    end
+  end
+end
+
+grid =
+  puzzle2
+  |> make_grid2.()
+
+grid
+|> make_low_points.()
+|> Enum.map(fn {point, _} ->
+  point
+  |> Recursion2.basin(grid)
+  |> MapSet.size()
+end)
+|> Enum.sort(:desc)
+|> Enum.take(3)
+|> Enum.product()
+```
+
+```elixir
+Vl.new(width: 700, height: 700)
+|> Vl.data_from_values(Enum.map(grid, fn {{x, y}, h} -> %{"x" => x, "y" => y, "h" => h} end))
+|> Vl.mark(:circle, size: 60, opacity: 0.8)
+|> Vl.encode_field(:x, "x", type: :quantitative, axis: false)
+|> Vl.encode_field(:y, "y", type: :quantitative, axis: false)
+|> Vl.encode_field(:color, "h", type: :quantitative, scale: [range: ["#2d3080", "#1fe8ff"]])
+
+# |> Vl.
+```
+
+<!-- livebook:{"attrs":{"chart_title":null,"height":null,"layers":[{"active":true,"chart_type":"point","color_field":null,"color_field_aggregate":null,"color_field_bin":null,"color_field_scale_scheme":null,"color_field_type":null,"data_variable":null,"geodata_color":"blue","latitude_field":null,"longitude_field":null,"x_field":null,"x_field_aggregate":null,"x_field_bin":null,"x_field_scale_type":null,"x_field_type":null,"y_field":null,"y_field_aggregate":null,"y_field_bin":null,"y_field_scale_type":null,"y_field_type":null}],"vl_alias":"Elixir.Vl","width":null},"chunks":null,"kind":"Elixir.KinoVegaLite.ChartCell","livebook_object":"smart_cell"} -->
+
+```elixir
+
+```
