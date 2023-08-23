@@ -1,0 +1,266 @@
+# --- Day 8: Seven Segment Search ---
+
+```elixir
+Mix.install([{:kino, "~> 0.9.4"}])
+```
+
+## Section
+
+https://www.twitch.tv/videos/1228693946?collection=k_DLnk2tvBa-fQ
+
+<!-- livebook:{"break_markdown":true} -->
+
+https://adventofcode.com/2021/day/8
+
+```elixir
+input = Kino.Input.textarea("test input")
+```
+
+## Part 1
+
+```elixir
+part1 =
+  Kino.Input.read(input)
+  |> String.split("\n", trim: true)
+  |> Enum.map(&String.split(&1, " | ", trim: true))
+  |> Enum.map(&Enum.at(&1, 1))
+  |> Enum.join(" ")
+  |> String.split(" ", trim: true)
+  |> Enum.map(&String.length(&1))
+  |> Enum.filter(&(&1 in [2, 3, 4, 7]))
+  |> Enum.frequencies()
+  |> Map.values()
+  # 239
+  |> Enum.sum()
+```
+
+## Part 2
+
+```elixir
+# My fundamental mistake here - I decided to focus on decrypting each segment
+# but should've focused on working with the whole number.
+# ie I went one level deeper than it was required. And this made the whole
+# thing more complicated.
+defmodule Segments1 do
+  @master_key %{
+    "abcefg" => 0,
+    "cf" => 1,
+    "acdeg" => 2,
+    "acdfg" => 3,
+    "bcdf" => 4,
+    "abdfg" => 5,
+    "abdefg" => 6,
+    "acf" => 7,
+    "abcdefg" => 8,
+    "abcdfg" => 9
+  }
+
+  @all ["abcefg", "cf", "cadeg", "acdfg", "bcdf", "abdfg", "abdefg", "acf", "abcdefg", "abcdfg"]
+
+  @test [[Enum.join(@all, " "), Enum.join(@all, " ")]]
+
+  def diff(str1, str2) do
+    MapSet.difference(MapSet.new(str1), MapSet.new(str2))
+    |> MapSet.to_list()
+  end
+
+  def find_by_length(list, length) do
+    Enum.filter(list, &(String.length(&1) == length))
+    |> Enum.map(&String.split(&1, "", trim: true))
+  end
+
+  def a(solution, segments) do
+    seven = find_by_length(segments, 3) |> List.flatten()
+    one = find_by_length(segments, 2) |> List.flatten()
+    Map.put(solution, "a", diff(seven, one) |> Enum.at(0))
+  end
+
+  def b(solution, segments) do
+    four = find_by_length(segments, 4) |> List.flatten()
+    one = find_by_length(segments, 2) |> List.flatten()
+    Map.put(solution, "b", diff(four, one) |> Enum.at(0))
+  end
+
+  def c(solution, segments) do
+    # c = not in [0,6,9] # now we know 6
+    sixers = find_by_length(segments, 6)
+    one = find_by_length(segments, 2) |> List.flatten()
+
+    [c] =
+      sixers
+      |> Enum.map(&Segments1.diff(one, &1))
+      |> List.flatten()
+
+    Map.put(solution, "c", c)
+  end
+
+  def f(solution, segments) do
+    # f = 1 - c
+    one = find_by_length(segments, 2) |> List.flatten()
+    c = Map.get(solution, "c")
+    Map.put(solution, "f", diff(one, [c]) |> Enum.at(0))
+  end
+
+  def d(solution, segments) do
+    # d = 4 - 1 - b
+    four = find_by_length(segments, 4) |> List.flatten()
+    one = find_by_length(segments, 2) |> List.flatten()
+    b = Map.get(solution, "b")
+    Map.put(solution, "d", diff(four, one) |> diff([b]) |> Enum.at(0))
+  end
+
+  def e(solution, segments) do
+    # e = [2,3,5] - ([0,9] - 6)
+    fivers = find_by_length(segments, 5)
+    sixers = find_by_length(segments, 6)
+    one = find_by_length(segments, 2) |> List.flatten()
+    six = six(sixers, one)
+    zero_nine = sixers |> Enum.filter(&(&1 !== six))
+
+    de =
+      zero_nine
+      |> Enum.map(&Segments1.diff(six, &1))
+      |> List.flatten()
+
+    [e] =
+      fivers
+      |> Enum.map(&diff(de, &1))
+      |> List.flatten()
+      |> Enum.uniq()
+
+    Map.put(solution, "e", e)
+  end
+
+  def g(solution, segments) do
+    [g] =
+      ["a", "b", "c", "d", "e", "f", "g"]
+      |> diff(Map.values(solution))
+
+    # Map.put(solution, "g", Enum.at(g, 0))
+    Map.put(solution, "g", g)
+  end
+
+  def translate_segment(segment, key_map) do
+    # key must be already reversed
+    segment
+    |> Enum.map(&Map.get(key_map, &1))
+    |> Enum.sort()
+    |> Enum.join()
+  end
+
+  def segment_to_num(segment) do
+    Map.get(@master_key, segment)
+    |> Integer.to_string()
+  end
+
+  def six(sixers, one) do
+    c =
+      sixers
+      |> Enum.map(&Segments1.diff(one, &1))
+      |> List.flatten()
+      |> Enum.at(0)
+
+    sixers
+    |> Enum.filter(&(c not in &1))
+    |> List.flatten()
+  end
+
+  def reverse_map(map) do
+    map
+    |> Map.to_list()
+    |> Enum.map(&{elem(&1, 1), elem(&1, 0)})
+    |> Map.new()
+  end
+
+  def solve(input), do: Enum.map(input, &solver/1)
+
+  def solver([segments, puzzle]) do
+    # ["acedgfb cdfbe gcdfa fbcad dab cefabd cdfgeb eafb cagedb ab", "cdfeb fcadb cdfeb cdbaf"]
+    segments = String.split(segments, " ")
+
+    key =
+      %{}
+      |> Segments1.a(segments)
+      |> Segments1.b(segments)
+      |> Segments1.c(segments)
+      |> Segments1.f(segments)
+      |> Segments1.d(segments)
+      |> Segments1.e(segments)
+      |> Segments1.g(segments)
+      |> Segments1.reverse_map()
+
+    puzzle
+    |> String.split(" ")
+    |> Enum.map(&(String.split(&1, "", trim: true) |> Enum.sort()))
+    |> Enum.map(&(Segments1.translate_segment(&1, key) |> Segments1.segment_to_num()))
+    |> Enum.join()
+  end
+
+  def test, do: solve(@test)
+end
+
+input
+|> Segments1.solve()
+```
+
+```elixir
+
+```
+
+## José
+
+```elixir
+input = Kino.Input.textarea("test")
+```
+
+```elixir
+input =
+  Kino.Input.read(input)
+  |> String.split([" |\n", "\n", " | "], trim: true)
+  |> Enum.chunk_every(2)
+  |> Enum.map(fn [input, output] ->
+    {String.split(input, " ") |> Enum.map(&String.to_charlist/1),
+     String.split(output, " ") |> Enum.map(&String.to_charlist/1)}
+  end)
+  |> List.first()
+```
+
+```elixir
+do_stuff = fn input ->
+  [one] = Enum.filter(elem(input, 0), &(length(&1) == 2))
+  [four] = Enum.filter(elem(input, 0), &(length(&1) == 4))
+  [seven] = Enum.filter(elem(input, 0), &(length(&1) == 3))
+  [eight] = Enum.filter(elem(input, 0), &(length(&1) == 7))
+  zero_six_nine = Enum.filter(elem(input, 0), &(length(&1) == 6))
+  [nine] = Enum.filter(zero_six_nine, &match?([], four -- &1))
+  [zero] = Enum.filter(zero_six_nine -- [nine], &match?([], one -- &1))
+  [six] = Enum.filter(zero_six_nine -- [nine], &match?([_], one -- &1))
+  two_three_five = Enum.filter(elem(input, 0), &(length(&1) == 5))
+  [three] = Enum.filter(two_three_five, &match?([], one -- &1))
+  [five] = Enum.filter(two_three_five -- [three], &match?([_], nine -- &1))
+  [two] = two_three_five -- [three, five]
+
+  {zero, one, two, three, four, five, six, seven, eight, nine}
+
+  map = %{
+    Enum.sort(zero) => 0,
+    Enum.sort(one) => 1,
+    Enum.sort(two) => 2,
+    Enum.sort(three) => 3,
+    Enum.sort(four) => 4,
+    Enum.sort(five) => 5,
+    Enum.sort(six) => 6,
+    Enum.sort(seven) => 7,
+    Enum.sort(eight) => 8,
+    Enum.sort(nine) => 9
+  }
+
+  elem(input, 1)
+  |> Enum.map(&Map.get(map, Enum.sort(&1)))
+  |> Integer.undigits()
+end
+
+input
+|> Enum.map(&do_stuff.(&1))
+|> Enum.sum()
+```
